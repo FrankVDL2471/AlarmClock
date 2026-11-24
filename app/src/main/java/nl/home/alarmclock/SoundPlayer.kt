@@ -63,7 +63,8 @@ class SoundPlayer(private val context: Context) {
         return findFile(sound)?.let { Uri.fromFile(it) }
     }
 
-    fun play(uri: Uri, alarm: Boolean, loop: Boolean, volume: Int?) {
+    /** [times] (≥ 1) is how often the sound plays when [loop] is false. */
+    fun play(uri: Uri, alarm: Boolean, loop: Boolean, volume: Int?, times: Int = 1) {
         stop(notify = false)
         val stream = if (alarm) AudioManager.STREAM_ALARM else AudioManager.STREAM_MUSIC
         if (volume != null) setVolume(stream, volume)
@@ -91,7 +92,8 @@ class SoundPlayer(private val context: Context) {
                 }
             }
         })
-        player.setMediaItem(MediaItem.fromUri(uri))
+        val count = if (loop) 1 else times.coerceIn(1, 100)
+        player.setMediaItems(List(count) { MediaItem.fromUri(uri) })
         player.prepare()
         player.play()
         exo = player

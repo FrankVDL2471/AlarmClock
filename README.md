@@ -90,7 +90,8 @@ A ringing alarm stops by itself after 15 minutes.
 ```
 GET /api/play?file=doorbell.mp3
 GET /api/play?url=http://192.168.1.10/sounds/news.mp3&volume=50
-GET /api/play?file=rain.mp3&loop=1
+GET /api/play?file=rain.mp3&loop=1          repeat forever (until /api/stop)
+GET /api/play?file=bell.wav&loop=3          play 3 times (same as &repeat=3)
 GET /api/stop                      stops the ringing alarm AND any playback
 GET /api/snooze?minutes=9          only while an alarm is ringing
 ```

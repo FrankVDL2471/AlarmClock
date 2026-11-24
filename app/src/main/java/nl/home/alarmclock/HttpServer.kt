@@ -62,9 +62,9 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
         "/api/play" -> {
             val sound = p["url"] ?: p["file"] ?: p["sound"] ?: throw ApiError(400, "file or url required")
             val volume = p["volume"]?.let { Parse.percent(it, "volume") }
-            val loop = Parse.bool(p["loop"]) ?: false
-            Controller.play(sound, volume, loop)
-            ok().put("playing", sound)
+            val (loop, times) = playCount(p)
+            Controller.play(sound, volume, loop, times)
+            ok().put("playing", sound).put("loop", loop).put("times", if (loop) -1 else times)
         }
 
         "/api/stop" -> ok().apply {
@@ -148,6 +148,27 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
         ).also { checkFuture(it) }
     }
 
+    /**
+     * How often to play: loop=1/true/-1 → forever, loop=0/false or nothing → once,
+     * loop=N (N ≥ 2) or repeat=N → N times. Returns (forever, times).
+     */
+    private fun playCount(p: Map<String, String>): Pair<Boolean, Int> {
+        p["repeat"]?.let {
+            val n = Parse.number(it, "repeat")
+            if (n < 1) throw ApiError(400, "repeat must be 1 or more")
+            return false to n
+        }
+        val v = p["loop"]?.trim() ?: return false to 1
+        v.replace(',', '.').toDoubleOrNull()?.toInt()?.let { n ->
+            return when {
+                n < 0 || n == 1 -> true to 1
+                n == 0 -> false to 1
+                else -> false to n
+            }
+        }
+        return (Parse.bool(v) ?: false) to 1
+    }
+
     /** "default" or empty means the system alarm tone. */
     private fun sound(p: Map<String, String>, fallback: String?): String? {
         val s = p["sound"] ?: p["file"] ?: p["url"] ?: return fallback
@@ -229,7 +250,7 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
             <li><code>/api/alarms/set?id=work&amp;time=07:00&amp;days=mon-fri[&amp;sound=…][&amp;volume=…][&amp;label=…]</code></li>
             <li><code>/api/alarms/enable?id=work&amp;on=0|1</code></li>
             <li><code>/api/alarms/delete?id=work</code> &middot; <code>/api/alarms/clear</code></li>
-            <li><code>/api/play?file=song.mp3</code> or <code>/api/play?url=http://…/song.mp3</code> <code>[&amp;volume=60][&amp;loop=1]</code></li>
+            <li><code>/api/play?file=song.mp3</code> or <code>/api/play?url=http://…/song.mp3</code> <code>[&amp;volume=60][&amp;loop=1]</code> (loop=1: forever, loop=3: 3 times)</li>
             <li><a href="/api/stop">/api/stop</a> &middot; <code>/api/snooze?minutes=9</code></li>
             <li><a href="/api/files">/api/files</a></li>
             <li><code>/api/volume?level=50[&amp;stream=alarm|media]</code></li>

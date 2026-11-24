@@ -162,14 +162,14 @@ object Controller {
 
     // ---- playback -----------------------------------------------------------------------------
 
-    fun play(sound: String, volume: Int?, loop: Boolean) {
+    fun play(sound: String, volume: Int?, loop: Boolean, times: Int = 1) {
         val uri = player.resolve(sound) ?: throw ApiError(404, "file not found: $sound")
         if (ringing != null) {
             ringing = null
             handler.removeCallbacks(ringTimeout)
             Notifications.cancelRinging(app)
         }
-        player.play(uri, alarm = false, loop = loop, volume = volume)
+        player.play(uri, alarm = false, loop = loop, volume = volume, times = times)
     }
 
     // ---- display ------------------------------------------------------------------------------
