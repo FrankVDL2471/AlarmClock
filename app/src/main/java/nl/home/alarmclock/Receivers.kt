@@ -9,8 +9,21 @@ import android.util.Log
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
+        startedAt = System.currentTimeMillis()
+        EventLog.init(this)
+        EventLog.log("App started (version ${packageManager.getPackageInfo(packageName, 0).versionName})")
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, e ->
+            EventLog.log("CRASH in ${thread.name}: $e")
+            previous?.uncaughtException(thread, e)
+        }
         Notifications.createChannels(this)
         Controller.init(this)
+    }
+
+    companion object {
+        @Volatile var startedAt = 0L
+            private set
     }
 }
 
@@ -35,7 +48,7 @@ class AlarmReceiver : BroadcastReceiver() {
 /** After boot, an app update or a clock change: restart the service and register the next alarm again. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        Log.i("BootReceiver", "Received ${intent.action}")
+        EventLog.log("Received ${intent.action}")
         ClockService.start(context)
         Controller.reschedule()
         if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {

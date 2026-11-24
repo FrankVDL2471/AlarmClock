@@ -118,7 +118,7 @@ object Controller {
     }
 
     fun startRinging(alarm: Alarm) {
-        Log.i("Controller", "Alarm ${alarm.id} ringing")
+        EventLog.log("Alarm '${alarm.id}' (${alarm.timeText}) ringing")
         ringing = alarm
         ClockService.start(app)
         player.playAlarm(alarm.sound, alarm.volume)
@@ -140,6 +140,7 @@ object Controller {
     fun stop(): JSONObject {
         val wasRinging = ringing != null
         val wasPlaying = player.isPlaying
+        if (wasRinging) EventLog.log("Alarm '${ringing?.id}' stopped")
         ringing = null
         handler.removeCallbacks(ringTimeout)
         Notifications.cancelRinging(app)
@@ -210,8 +211,17 @@ object Controller {
             put("volumeMedia", player.volumePercent(AudioManager.STREAM_MUSIC))
             put("dim", if (dim) 1 else 0)
             put("brightness", brightness)
+            val nowMs = System.currentTimeMillis()
+            put("uptimeSeconds", (nowMs - App.startedAt) / 1000)
+            put("appStarted", millisToText(App.startedAt))
+            put("serverStarted", millisToText(ClockService.serverStartedAt))
+            put("serverRestarts", ClockService.serverRestarts)
         }
     }
+
+    private fun millisToText(ms: Long): Any = if (ms <= 0) JSONObject.NULL else
+        java.time.Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDateTime()
+            .truncatedTo(ChronoUnit.SECONDS).toString()
 }
 
 /** Runs code on the main thread from another thread and waits for the result. */

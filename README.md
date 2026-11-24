@@ -106,6 +106,25 @@ GET /api/display?dim=1&brightness=5        (brightness 0–100, -1 = system sett
 GET /api/display?dim=0&brightness=-1
 ```
 
+`/api/status` also includes `uptimeSeconds`, `appStarted`, `serverStarted` and `serverRestarts`.
+
+### Event log (troubleshooting)
+
+```
+GET /api/log                 last 200 events, as plain text
+GET /api/log?lines=1000
+GET /api/log?clear=1
+```
+
+The log records app starts, the service starting and stopping, network lost and available, IP changes, HTTP server (re)starts, alarms, crashes, and an "Alive" line with the Wi-Fi signal every 15 minutes. It is kept in a file, so it survives the app being killed. A gap in the "Alive" lines means the phone was asleep or the app wasn't running.
+
+### Robustness
+
+- A watchdog checks every minute whether the HTTP server still accepts connections, and restarts it if it doesn't.
+- The server also restarts when the network comes back.
+- Wi-Fi locks: `HIGH_PERF`, plus `LOW_LATENCY` on Android 10 and newer, which is effective while the clock is on screen.
+- If Loxone reports *failed to connect to host*: check `/api/log`. Also set Wi-Fi privacy to **"Use device MAC"**, so the DHCP reservation keeps working, and turn off Wi-Fi power saving on the phone.
+
 `/api/status` returns, among other things, `"ringing": 0|1`, `"playing": 0|1`, `"nextAlarm"`, `"minutesToNextAlarm"`, `"volumeAlarm"` and `"dim"`. Numbers are used instead of true/false so that Loxone can read them easily.
 
 ## Loxone

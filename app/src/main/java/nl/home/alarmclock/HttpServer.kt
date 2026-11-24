@@ -18,12 +18,14 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
             val p = params(session)
             Log.d(TAG, "${session.method} $path $p")
             if (path == "/") return html(HELP_PAGE)
+            if (path == "/api/log") return log(p)
             val body = Main.call { route(path, session.method, p) }
             json(Response.Status.OK, body)
         } catch (e: ApiError) {
             json(statusFor(e.code), JSONObject().put("ok", false).put("error", e.message))
         } catch (e: Exception) {
             Log.e(TAG, "Request failed: $path", e)
+            EventLog.log("Request $path failed: $e")
             json(Response.Status.INTERNAL_ERROR, JSONObject().put("ok", false).put("error", e.toString()))
         }
     }
@@ -215,6 +217,20 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
         return result
     }
 
+    /** GET /api/log?lines=200 (plain text, newest last) · /api/log?clear=1 · /api/log?format=json */
+    private fun log(p: Map<String, String>): Response {
+        if (Parse.bool(p["clear"]) == true) {
+            EventLog.clear()
+            EventLog.log("Log cleared")
+        }
+        val count = p["lines"]?.let { Parse.number(it, "lines") }?.coerceIn(1, 5000) ?: 200
+        val lines = EventLog.lines(count)
+        if (p["format"] == "json") return json(Response.Status.OK, ok().put("lines", JSONArray(lines)))
+        return newFixedLengthResponse(
+            Response.Status.OK, "text/plain; charset=utf-8", lines.joinToString("\n", postfix = "\n")
+        )
+    }
+
     private fun ok() = JSONObject().put("ok", true)
 
     private fun statusFor(code: Int): Response.IStatus = when (code) {
@@ -253,6 +269,7 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
             <li><code>/api/play?file=song.mp3</code> or <code>/api/play?url=http://…/song.mp3</code> <code>[&amp;volume=60][&amp;loop=1]</code> (loop=1: forever, loop=3: 3 times)</li>
             <li><a href="/api/stop">/api/stop</a> &middot; <code>/api/snooze?minutes=9</code></li>
             <li><a href="/api/files">/api/files</a></li>
+            <li><a href="/api/log">/api/log</a> <code>[?lines=500][&amp;clear=1][&amp;format=json]</code> &ndash; events: starts, network changes, server restarts, alarms</li>
             <li><code>/api/volume?level=50[&amp;stream=alarm|media]</code></li>
             <li><code>/api/display?dim=1&amp;brightness=5</code> (brightness -1 = system)</li>
             </ul>
