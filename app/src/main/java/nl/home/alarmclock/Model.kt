@@ -141,12 +141,14 @@ object Parse {
     }
 
     /**
-     * Time from the request: time=07:30 | time=0730 | hour=7&minute=30 |
+     * Time from the request: time=07:30 | time=0730 | time=Vandaag, 07:30 | hour=7&minute=30 |
      * sec=27000 (seconds since midnight) | min=450 (minutes since midnight).
      */
     fun time(p: Map<String, String>): Pair<Int, Int>? {
         val result: Pair<Int, Int>? = p["time"]?.let { v ->
-            val s = v.trim()
+            // Loxone may send text in front of the time ("Vandaag, 19:01", "Tuesday, 01.12. 19:01"):
+            // the time is always the last word.
+            val s = v.trim().split(Regex("""[\s,]+""")).last()
             Regex("""^(\d{1,2})[:.hH](\d{1,2})(?::\d{1,2})?$""").find(s)?.let {
                 it.groupValues[1].toInt() to it.groupValues[2].toInt()
             } ?: Regex("""^\d{3,4}$""").find(s)?.let {

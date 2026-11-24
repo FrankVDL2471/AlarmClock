@@ -76,7 +76,7 @@ POST /api/alarms  {"id":"work","time":"06:45","days":["mon","tue"],"sound":"wake
 | Parameter | Meaning |
 |---|---|
 | `id` | Name of the alarm (default `default`). Using an existing id updates that alarm. |
-| `time` | `07:30`, `7.30` or `0730`. Alternatives: `hour=7&minute=30`, `sec=27000` (seconds since midnight) or `min=450` (minutes since midnight). These are handy with Loxone `<v>`. |
+| `time` | `07:30`, `7.30` or `0730`. Text in front of the time is ignored: only the last word counts, so `Vandaag, 19:01` and `Tuesday, 01.12. 19:01` both mean 19:01. Alternatives: `hour=7&minute=30`, `sec=27000` (seconds since midnight) or `min=450` (minutes since midnight). These are handy with Loxone `<v>`. |
 | `days` | `mon,tue,…`, `mon-fri`, `1-5` (1 = Monday), `weekdays`, `weekend`, `daily`, and Dutch day names `ma,di,wo,do,vr,za,zo`. **Without `days` it is a one-time alarm.** |
 | `date` | `2026-12-01`, for a one-time alarm on a specific day |
 | `sound` | A file name in `Music/AlarmClock`, an `http(s)://` URL to an MP3, or `default` (the phone's alarm tone). If the file can't be found or played, the alarm tone is used. |
